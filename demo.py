@@ -12,22 +12,19 @@ import torchvision.transforms as transforms
 import imageio
 import pickle
 
-# load model
-model = CLIPDensePredT(version='ViT-B/16', reduce_dim=64)
+model = CLIPDensePredT(version='ViT-B/16', reduce_dim=64, complex_trans_conv=True)
 model.eval()
-
-# non-strict, because we only stored decoder weights (not CLIP weights)
-model.load_state_dict(torch.load('weights/rd64-uni.pth', map_location=torch.device('cpu')), strict=False)
-
+model.load_state_dict(torch.load('weights/rd64-uni-refined.pth'), strict=False)
 
 # load and normalize image
-path = '/home/cc/students/csguests/chendudai/Thesis/data/0_1_undistorted/dense/images'
-list_images = os.listdir(path)
-# input_image = Image.open('/home/cc/students/csguests/chendudai/Thesis/data/0_1_undistorted/dense/images/0732.jpg')
-# folder = '0732/'
-# names = ['_window', '_statue', '_door', '_facade', '_tower', '_top_part', '_spire']
-names = ['_door']
 
+path = '/storage/chendudai/data/0_1_undistorted/dense/images'
+list_images = os.listdir(path)
+input_image = '/storage/chendudai/data/0_1_undistorted/dense/images/0779.jpg'
+folder = '0779/'
+# names = ['_window', '_statue', '_door', '_facade', '_tower', '_top_part', '_spire']
+# names = ['_door']
+names = ['_window']
 
 transform = transforms.Compose([
     transforms.ToTensor(),
@@ -37,9 +34,10 @@ transform = transforms.Compose([
 
 for name in names:
     if name == '_window':
-        prompts = ['a window', 'windows', 'a photo of a window', 'a photo of windows',
-                   'a photo of a window of the cathedral',
-                   'a photo of windows of the cathedral', 'a window of a cathedral', 'The windows of the cathedral']
+        # prompts = ['a window', 'a photo of a window', 'a photo of windows',
+        #            'a photo of a window of the cathedral',
+        #            'a photo of windows of the cathedral', 'The windows of the cathedral']
+        prompts = ['a photo of windows']
     if name == '_statue':
         prompts = ['statue', 'a photo of a statue', 'a statue of the cathedral', 'the statues of the cathedral',
                    'a photo of a statue of the cathedral', 'a photo of the statues of the cathedral']
@@ -49,8 +47,9 @@ for name in names:
         prompts = ['a photo of a door']
 
     if name == '_facade':
-        prompts = ['facade', 'a photo of a facade', 'a facade of the cathedral', 'the facade of the cathedral',
-                   'a photo of a facade of the cathedral', 'a photo of the facade of the cathedral']
+        # prompts = ['facade', 'a photo of a facade', 'a facade of the cathedral', 'the facade of the cathedral',
+        #            'a photo of a facade of the cathedral', 'a photo of the facade of the cathedral']
+        prompts = ['a photo of a facade']
     if name == '_tower':
         prompts = ['tower', 'a photo of a tower', 'a tower of the cathedral', 'the tower of the cathedral',
                    'a photo of a tower of the cathedral', 'a photo of the tower of the cathedral']
@@ -60,8 +59,14 @@ for name in names:
     if name == '_spire':
         prompts = ['spire', 'a photo of a spire', 'a spire of the cathedral', 'the spires of the cathedral',
                    'a photo of a spire of the cathedral', 'a photo of the spires of the cathedral']
+    if name == '_flank':
+        # prompts = ['flank', 'a photo of a flank', 'a flank of the cathedral', 'the flanks of the cathedral',
+        #            'a photo of a flank of the cathedral', 'a photo of the flanks of the cathedral']
+        prompts = ['the flanks of the cathedral']
+    if name == '_pinnacles':
+        prompts = ['pinnacles']
 
-for input_image in list_images:
+    # for input_image in list_images:
     img = Image.open(os.path.join(path, input_image))
     img = transform(img).unsqueeze(0)
 
@@ -73,7 +78,7 @@ for input_image in list_images:
     with torch.no_grad():
         preds = model(img.repeat(len(prompts),1,1,1), prompts)[0]
 
-    # show prediction
+    # # show prediction
     # _, ax = plt.subplots(1, len(prompts)+2, figsize=(25, 4))
     # [a.axis('off') for a in ax.flatten()]
     # ax[0].imshow(input_image)
@@ -85,16 +90,23 @@ for input_image in list_images:
     # plt.show()
 
 
-    if name == '_door':
+    if name == '_window':
         for i, prompt in enumerate(prompts):
             # with open('./results/' + folder + prompt.replace(" ", "_") + '.pkl', 'wb') as handle:
-            with open('./results/a_photo_of_a_door/' + input_image.split('.')[0] + '.pickle', 'wb') as handle:
+            # input_image.split('.')[0]
+            y = '0779'
+            os.makedirs('./results/window/' + y, exist_ok=True)
+            with open('./results/window/' + y + '.pickle', 'wb') as handle:
                 mask = torch.sigmoid(preds[i][0])
                 # mask[mask<0.5] = 0
                 # mask[mask>=0.5] = 1
+                x = './results/window/' + y + '.png'
+                x1 = './results/window/' + y + '_1.png'
+                imageio.imwrite(x, mask)
+                imageio.imwrite(x1,  (10*mask+ img).squeeze(dim=0).permute(1,2,0))
                 torch.save(mask, handle)
-
-    # show prediction with threshold overlay
+    #
+    # # show prediction with threshold overlay
     # _, ax = plt.subplots(1, len(prompts)+2, figsize=(25, 4))
     # [a.axis('off') for a in ax.flatten()]
     # ax[0].imshow(input_image)
@@ -116,12 +128,12 @@ for input_image in list_images:
     # plt.tight_layout()
     # plt.savefig('./results/' + folder + 'prediction_overlay' + name + '_thershold_' + threshold_str + '.png')
     # plt.show()
-
-
-
-
-
-
+    #
+    #
+    #
+    #
+    #
+    #
     # threshold = 0.25
     # threshold_str = str(threshold)
     #
