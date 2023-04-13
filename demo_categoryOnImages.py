@@ -80,8 +80,8 @@ def main_clipseg(use_prepared_aug_flag, files, path_images, folder2save, prompts
             # mask_before = mask
 
             # mask = mask / mask.max()
-            # mask[mask < 0.5] = 0
-            # mask[mask >= 0.5] = 1
+            mask[mask < 0.5] = 0
+            mask[mask >= 0.5] = 1
 
             # transform_to_image = T.ToPILImage()
             # mask_img = transform_to_image(np.round((1-mask).unsqueeze(dim=0)*255))
