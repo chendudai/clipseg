@@ -36,6 +36,7 @@ def main_clipseg(use_prepared_aug_flag, files, path_images, folder2save, prompts
     model.eval()
     model.load_state_dict(torch.load('weights/rd64-uni-refined.pth'), strict=False)
 
+
     if use_prepared_aug_flag:
         list_images = os.listdir(path_images + '/images/')
     else:
@@ -52,7 +53,7 @@ def main_clipseg(use_prepared_aug_flag, files, path_images, folder2save, prompts
 
 
     # save HTML
-    html_out = open(os.path.join( './sem_results/' + folder2save, "clipseg.html"), "w")
+    html_out = open(os.path.join('./sem_results/' + folder2save, "clipseg.html"), "w")
     print('<head><meta charset="UTF-8"></head>', file=html_out)
     print("<h1>Results</h1>", file=html_out)
 
@@ -61,7 +62,30 @@ def main_clipseg(use_prepared_aug_flag, files, path_images, folder2save, prompts
                 continue
             print(img_name)
             name = img_name.split('.')[0]
-            img = Image.open(os.path.join(path_images, img_name))
+            try:
+                img = Image.open(os.path.join(path_images, img_name))
+            except:
+                try:
+                    img_name = img_name.replace('.jpg','.JPG')
+                    img = Image.open(os.path.join(path_images, img_name))
+                except:
+                    try:
+                        img_name = img_name.replace('.JPG', '.png')
+                        img = Image.open(os.path.join(path_images, img_name))
+                    except:
+                        print(f'no image: {img_name}')
+                        continue
+                # try:
+                #     img = Image.open(os.path.join(path_images, img_name))
+                # except:
+                #     print('no file')
+                #     imgs = os.listdir(path_images)
+                #     idx = min(int(img_name.split('.')[0]), len(imgs)-1)
+                #     img_name = imgs[idx]
+                #     img = Image.open(os.path.join(path_images, img_name))
+
+
+
             img = img.resize((352, 352))
             img_tensor = transform(img)
 
@@ -80,8 +104,8 @@ def main_clipseg(use_prepared_aug_flag, files, path_images, folder2save, prompts
             # mask_before = mask
 
             # mask = mask / mask.max()
-            mask[mask < 0.5] = 0
-            mask[mask >= 0.5] = 1
+            # mask[mask < 0.5] = 0
+            # mask[mask >= 0.5] = 1
 
             # transform_to_image = T.ToPILImage()
             # mask_img = transform_to_image(np.round((1-mask).unsqueeze(dim=0)*255))
@@ -92,20 +116,26 @@ def main_clipseg(use_prepared_aug_flag, files, path_images, folder2save, prompts
 
             colormap = plt.get_cmap('jet')
 
-            with open('./sem_results/' + folder2save + name + '.pickle', 'wb') as handle:
-                torch.save(mask, handle)
-            #
-            # plt.imsave('./sem_results/' + folder2save + name + '_pred_clipseg.png',mask, cmap=colormap)
-            # img.save('./sem_results/' + folder2save + name + '.png')
 
-            # with open(folder2save + name + '.pickle', 'wb') as handle:
-            #     torch.save(mask, handle)
-            #
-            # plt.imsave(folder2save + name + '_pred_clipseg.png',mask, cmap=colormap)
-            # img.save(folder2save + name + '.png')
+
+            if __name__ == '__main__':
+                with open(folder2save + name + '.pickle', 'wb') as handle:
+                    torch.save(mask, handle)
+
+                plt.imsave(folder2save + name + '_pred_clipseg.png',mask, cmap=colormap)
+                img.save(folder2save + name + '.png')
+                continue
+
+            else:
+                with open('./sem_results/' + folder2save + name + '.pickle', 'wb') as handle:
+                    torch.save(mask, handle)
+
+                plt.imsave('./sem_results/' + folder2save + name + '_pred_clipseg.png', mask, cmap=colormap)
+                img.save('./sem_results/' + folder2save + name + '.png')
 
             fig, axis = plt.subplots(1, 3, figsize=(20, 4))
-            fig.suptitle(f'prompt: {prompts[0]}, Clip retrival confidence: {pos_confidence_values[i][0]}, Retrival Order: {i+1}')
+            # fig.suptitle(f'prompt: {prompts[0]}, Clip retrival confidence: {pos_confidence_values[i][0]}, Retrival Order: {i+1}')
+            fig.suptitle(f'prompt: {prompts[0]}, Clip retrival confidence: {pos_confidence_values[i]}, Retrival Order: {i+1}')
             axis[0].imshow(img)
             axis[0].title.set_text('rgb gt')
             im = axis[1].imshow(mask, cmap=colormap)
@@ -113,6 +143,7 @@ def main_clipseg(use_prepared_aug_flag, files, path_images, folder2save, prompts
             axis[2].imshow(img)
             axis[2].imshow(mask, cmap=colormap, alpha=0.5)
             axis[2].title.set_text(f'clipseg pred blend')
+
             # axis[3].plot(hist)
             # x = np.zeros(len(hist))
             # x[np.int(th_val)] = 10000
@@ -143,13 +174,13 @@ def main_clipseg(use_prepared_aug_flag, files, path_images, folder2save, prompts
 
 if __name__ == '__main__':
     # files = ['0025.jpg', '0634.JPG', '0637.jpg','0645.JPG', '0764.jpg'] # facade
-    cat = 'portal'
+    cat = 'minarets'
 
-    files = os.listdir('/home/cc/students/csguests/chendudai/Thesis/data/manually_gt_masks_0_1/' + cat +'/')
-    prompts = "a picture of a cathedral's " + cat
-
-    files = [f[:4] + f[-4:] for f in files]
-    path_images = '/home/cc/students/csguests/chendudai/Thesis/data/0_1_undistorted/dense/images/'
-    folder2save = '/home/cc/students/csguests/chendudai/Thesis/data/manually_gt_masks_0_1/' + cat + '/clipseg_results/'
+    files = os.listdir('/home/cc/students/csguests/chendudai/Thesis/data/manually_gt_masks_badshahi/' + cat +'/')
+    # prompts = "a picture of a cathedral's " + cat
+    prompts = cat
+    files = [f[:-9] + f[-4:] for f in files]
+    path_images = '/home/cc/students/csguests/chendudai/Thesis/data/badshahi_mosque/dense/images/'
+    folder2save = '/home/cc/students/csguests/chendudai/Thesis/data/manually_gt_masks_badshahi/' + cat + '/clipseg_results/'
     os.makedirs(folder2save, exist_ok=True)
     main_clipseg(False, files, path_images, folder2save, prompts)
